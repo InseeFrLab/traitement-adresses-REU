@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.361">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>methodologie</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="methodologie_files/libs/clipboard/clipboard.min.js"></script>
+<script src="methodologie_files/libs/quarto-html/quarto.js"></script>
+<script src="methodologie_files/libs/quarto-html/popper.min.js"></script>
+<script src="methodologie_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="methodologie_files/libs/quarto-html/anchor.min.js"></script>
+<link href="methodologie_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="methodologie_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="methodologie_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="methodologie_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="methodologie_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+<section id="méthodologie-de-la-normalisation-des-adresses-du-reu" class="level1">
+<h1>Méthodologie de la normalisation des adresses du REU</h1>
+<section id="juin-2023" class="level3">
+<h3 class="anchored" data-anchor-id="juin-2023">Juin 2023</h3>
+<p>La mise à disposition de la correspondance des adresses des électeurs avec les bureaux de vote du Répertoire électoral unique (REU) a nécessité des traitements visant à garantir la confidentialité des données à caractère personnel et à normaliser les informations géographiques pour en faciliter l’usage. Ce document présente ces traitements, réalisés par l’Insee avec l’aide d’Etalab.<br>
+Il reprend principalement les éléments présentés lors de l’atelier du 12 décembre 2022 au Lieu de la Transformation Publique.</p>
+</section>
+<section id="initialisation" class="level2">
+<h2 class="anchored" data-anchor-id="initialisation">1. Initialisation</h2>
+<p><em>Analyse exploratoire des données &amp; preprocessing</em></p>
+<section id="a.-les-champs-à-traiter" class="level3">
+<h3 class="anchored" data-anchor-id="a.-les-champs-à-traiter">A. Les champs à traiter</h3>
+<p>L’extraction du REU dont proviennent les données a été réalisée en septembre 2022. Les lignes du fichier brut correspond aux couples (adresse de rattachement, bureau de vote) distincts dans le Répertoire Électoral Unique, ce dernier étant mis à jour en permanence. Une ligne ne correspond donc pas nécessairement à un électeur distinct. Au sein de chaque ligne sont renseignées les adresses de rattachement et de contact (parfois différentes) ainsi que les informations liées au bureau de vote correspondant. Dans la normalisation des adresses, certains champs sont à prendre en considération plus que d’autres, notamment :</p>
+<ul>
+<li><span class="orange"><strong>Champs pouvant comporter des données personnelles :</strong></span>
+<ul>
+<li>Numéro de voie : <em>num_voie</em></li>
+<li>Nom de la voie : <em>voie</em></li>
+<li>Compléments : <em>complément_1</em> et <em>complément2</em></li>
+<li>Lieu-dit : <em>lieu_dit</em></li>
+</ul></li>
+<li><span class="orange"><strong>Autres champs :</strong></span>
+<ul>
+<li>Code postal : <em>cp</em></li>
+<li>Nom de la commune (tel que rentré manuellement) : <em>commune</em></li>
+<li>Pays : <em>pays</em></li>
+</ul></li>
+</ul>
+</section>
+<section id="b.-premières-opérations" class="level3">
+<h3 class="anchored" data-anchor-id="b.-premières-opérations">B. Premières opérations</h3>
+<ul>
+<li><span class="orange"><strong>Reconstruction de variables :</strong></span>
+<ul>
+<li>Reconstruire les <span class="blue2">départements</span> à partir des codes postaux (00 : inconnu, 99 : étranger)</li>
+<li>Reconstituer les <span class="blue2">codes commune</span> des adresses à partir des libellés des communes pour comparer au code commune du bureau de vote associé</li>
+</ul></li>
+<li><span class="orange"><strong>Traitements initiaux :</strong></span>
+<ul>
+<li>Passer tous les champs en minuscules</li>
+<li>Retirer toute ponctuation (hors tirets) et les doubles espaces</li>
+</ul></li>
+</ul>
+</section>
+</section>
+<section id="anonymisation" class="level2">
+<h2 class="anchored" data-anchor-id="anonymisation">2. Anonymisation</h2>
+<p><em>Retirer les informations personnelles des données</em></p>
+<section id="a.-procédure-danonymisation" class="level3">
+<h3 class="anchored" data-anchor-id="a.-procédure-danonymisation">A. Procédure d’anonymisation</h3>
+<ul>
+<li>Établir une liste des variations du mot <span class="blue2">“chez”</span> et autres mots-clefs (hébergé, bàl, …)</li>
+<li>Pour chaque champ concerné, repérer les adresses pour lesquelles l’une des variations est présente
+<ul>
+<li>Certaines variations ne sont recherchées qu’en début de champ (ex: Monsieur, Mme) <!-- - Après analyse, les [prépositions de lieux]{.blue2} ne sont pas particulièrement indicatrices de données sensibles --></li>
+</ul></li>
+<li>Pour les adresses concernées, lancer la <span class="green2">méthode d’anonymisation</span></li>
+</ul>
+</section>
+<section id="b.-méthode-danonymisation" class="level3">
+<h3 class="anchored" data-anchor-id="b.-méthode-danonymisation">B. Méthode d’anonymisation</h3>
+<ul>
+<li>Repérer le <span class="blue2">premier mot sensible identifié</span> dans le champ (ex : chez, hébergé, …)</li>
+<li>Si celui-ci est précédé ou suivi de certains mots-clefs identifiés, <span class="green2">laisser passer</span>
+<ul>
+<li>Ex: le mot est précédé d’un déterminant ou suivi d’une préposition bien choisie</li>
+<li>“Avenue <span class="blue2">chez les</span> cygognes” ou “Rue <span class="blue2">de chez</span> St-Jérôme”</li>
+</ul></li>
+<li>Sinon, regarder ce qui se trouve après le mot sensible :
+<ul>
+<li>Si un seul mot suit, <span class="green2">laisser passer</span> (généralement un nom de commerce, ex: chez Bertrand)</li>
+<li>Si ” - ” apparaît plus loin, <span class="green2">conserver uniquement ce qui se situe après</span>
+<ul>
+<li>Ex: “3 rue des hêtres chez Mme Martin - résidence des fleurs”</li>
+</ul></li>
+<li>Si un numéro ou type de voie (ex : rue) apparaît plus loin, <span class="green2">conserver uniquement ce qui se situe après</span>
+<ul>
+<li>Ex: “chez M. Robert 4 rue des marrons”</li>
+</ul></li>
+<li>Sinon, <span class="green2">tout supprimer</span> après le mot sensible</li>
+</ul></li>
+</ul>
+</section>
+</section>
+<section id="nettoyage" class="level2">
+<h2 class="anchored" data-anchor-id="nettoyage">3. Nettoyage</h2>
+<p><em>Retirer les spécifications d’adresses nocives pour la normalisation et géolocalisation</em></p>
+<section id="a.-procédure-de-nettoyage" class="level3">
+<h3 class="anchored" data-anchor-id="a.-procédure-de-nettoyage">A. Procédure de nettoyage</h3>
+<ul>
+<li>Établir une liste de toutes les <span class="blue2">spécifications supplémentaires d’adresse</span> (ex : étage, apt, …) <!-- - Ne sont pas inclus les mots faisant couramment référence à des types ou noms de voies (ex : porte, escalier) --></li>
+<li>Pour chaque champ concerné, distinguer l’adresse si l’une des spécifications est présente
+<ul>
+<li>On cherche également les <span class="blue2">codes postaux répétés</span> dans le mauvais champ pour les y supprimer</li>
+</ul></li>
+<li>Pour les adresses concernées, lancer la <span class="green2">méthode de nettoyage</span></li>
+</ul>
+</section>
+<section id="b.-méthode-de-nettoyage" class="level3">
+<h3 class="anchored" data-anchor-id="b.-méthode-de-nettoyage">B. Méthode de nettoyage</h3>
+<ul>
+<li>Repérer la <span class="blue2">1ère spécification sensible</span> présente (ex: apt)</li>
+<li>Si celle-ci est précédée ou suivie de certains mots-clefs identifiés, <span class="green2">laisser passer</span>
+<ul>
+<li>Ex: On retirera “entrée” dans “5 rue des marrons entrée 3” mais pas dans “rue de l’entrée dorée”</li>
+</ul></li>
+<li>Sinon, regarder ce qui se trouve après le mot sensible :
+<ul>
+<li><span class="green2">Tout supprimer</span> jusqu’à retomber sur un mot d’au moins 3 lettres</li>
+<li>On enlève ainsi les “étage 3”, “apt B”, “lgt A 25”, …</li>
+</ul></li>
+<li>Recommencer jusqu’à avoir retiré toutes les spécifications inutiles</li>
+</ul>
+</section>
+<section id="c.-exemple-1" class="level3">
+<h3 class="anchored" data-anchor-id="c.-exemple-1">C. Exemple 1</h3>
+<ul>
+<li><span class="orange"><strong>Adresse initiale :</strong></span> “6 rue de Sévigné / chez M. Jean Bernard chemin du Bourg, bât 3 apt 27”</li>
+<li><span class="orange"><strong>Traitement initial :</strong></span> “6 rue de sévigné chez m jean bernard chemin du bourg bât 3 apt 27”</li>
+<li><span class="orange"><strong>Après anonymisation :</strong></span> “6 rue de sévigné chemin du bourg bât 3 apt 27”</li>
+<li><span class="orange"><strong>Après nettoyage :</strong></span> “6 rue de sévigné chemin du bourg”</li>
+</ul>
+</section>
+<section id="d.-exemple-2" class="level3">
+<h3 class="anchored" data-anchor-id="d.-exemple-2">D. Exemple 2</h3>
+<ul>
+<li><span class="orange"><strong>Adresse initiale :</strong></span> “4 Rue de chez Les Lièvres, étage n°42”</li>
+<li><span class="orange"><strong>Traitement initial :</strong></span> “4 rue de chez les lièvres étage n 42”</li>
+<li><span class="orange"><strong>Après anonymisation :</strong></span> “4 rue de chez les lièvres étage n 42”</li>
+<li><span class="orange"><strong>Après nettoyage :</strong></span> “4 rue de chez les lièvres”</li>
+</ul>
+</section>
+<section id="e.-traitements-spéciaux" class="level3">
+<h3 class="anchored" data-anchor-id="e.-traitements-spéciaux">E. Traitements spéciaux</h3>
+<ul>
+<li><span class="orange"><strong>Nettoyer <em>num_voie</em> :</strong></span> On ne garde que les nombres éventuellement suivis de :
+<ul>
+<li>Une seule lettre</li>
+<li>bis/ter</li>
+</ul></li>
+<li><span class="orange"><strong>Générer l’adresse complète :</strong></span> On concatène les différents champs de l’adresse
+<ul>
+<li>On cherchera notamment à éliminer les éventuels dupliqués dans 2 champs successifs</li>
+</ul></li>
+</ul>
+</section>
+</section>
+<section id="géolocalisation" class="level2">
+<h2 class="anchored" data-anchor-id="géolocalisation">4. Géolocalisation</h2>
+<p><em>Passer des adresses rentrées manuellement à un référentiel officiel</em></p>
+<section id="a.-dédoublonner-les-adresses" class="level3">
+<h3 class="anchored" data-anchor-id="a.-dédoublonner-les-adresses">A. Dédoublonner les adresses</h3>
+<ul>
+<li>Le fichier initial comprend <span class="blue2">26M</span> adresses de rattachement</li>
+<li>Après anonymisation et nettoyage, certaines adresses sont devenues identiques. Il est donc possible de partiellement dédoublonner la table en fonction des adresses nettoyées, notamment pour limiter les entrées à l’API de la BAN et de la BANO</li>
+<li>En pratique, la table dédoublonnée a un peu moins de <span class="blue2">20M</span> d’entrées</li>
+</ul>
+</section>
+<section id="b.-normaliser-et-géolocaliser-les-adresses" class="level3">
+<h3 class="anchored" data-anchor-id="b.-normaliser-et-géolocaliser-les-adresses">B. Normaliser et géolocaliser les adresses</h3>
+<ul>
+<li><p>On n’envoie ainsi pour géolocalisation que des champs traités (<span class="blue2">anonymisés</span> et <span class="blue2">nettoyés</span>)</p></li>
+<li><p>Un référentiel choisi pour normaliser et géolocaliser les adresses : la <strong>Base Adresse Nationale</strong> (BAN) et la <strong>Base Adresse Nationale Ouverte</strong> (BANO)</p>
+<ul>
+<li>Via des requêtes à une API</li>
+<li>Coordonnées GPS (WGS84, EPSG 4326)</li>
+</ul></li>
+<li><p>Un script repris de <a href="https://github.com/cquest/geocodage-sirene">Christian QUEST</a>, initialement écrit pour géocoder la base Sirene</p></li>
+</ul>
+</section>
+<section id="c.-les-résultats-de-la-normalisation" class="level3">
+<h3 class="anchored" data-anchor-id="c.-les-résultats-de-la-normalisation">C. Les résultats de la normalisation</h3>
+<ul>
+<li>Les adresses issues des référentiels sont par définition :
+<ul>
+<li><span class="blue2">Nettoyées</span> et <span class="blue2">anonymisées</span></li>
+<li><span class="blue2">Géolocalisées</span></li>
+</ul></li>
+<li>Toutes les adresses données en entrée aux référentiels ne trouvent pas une adresse correspondante normalisée.
+<ul>
+<li>Certaines sont donc seulement identifiées au niveau de la voie, de la commune, voire pas du tout.</li>
+<li>Les variables de qualité renvoyées par les deux outils de géolocalisation sont présentes dans la table finale.</li>
+</ul></li>
+</ul>
+</section>
+<section id="d.-principe-des-requêtes-aux-référentiels-dadresses" class="level3">
+<h3 class="anchored" data-anchor-id="d.-principe-des-requêtes-aux-référentiels-dadresses">D. Principe des requêtes aux référentiels d’adresses</h3>
+<ul>
+<li><p>On cherche à normaliser chaque adresse au sein de la commune déclarée.</p>
+<ul>
+<li>Si on ne trouve pas au numéro de voie (ou que le score de fiabilité est trop bas), on cherche au niveau de la voie</li>
+<li>Puis même chose à l’échelle de la commune</li>
+</ul></li>
+<li><p>Plusieurs bases différentes (BAN, BANO) sont requêtées les unes après les autres si l’on ne trouve pas de correspondance dans les précédentes.</p></li>
+<li><p>Tous les résultats renvoyés sont donc des normalisations jugées suffisamment fiables. De plus, deux filtres supplémentaires sont ajoutés :</p>
+<ul>
+<li>Ne sont gardées que les adresses situées dans la même commune que le bureau de vote associé</li>
+<li>Ne sont gardées que les adresses géolocalisées plus finement qu’à l’échelle de la commune, ou bien situées dans une commune avec un seul bureau de vote</li>
+</ul></li>
+</ul>
+</section>
+</section>
+<section id="finalisation" class="level2">
+<h2 class="anchored" data-anchor-id="finalisation">5. Finalisation</h2>
+<p><em>Mise en forme des résultats issus de la BAN et de la BANO</em></p>
+<section id="a.-mise-en-forme-des-résultats" class="level3">
+<h3 class="anchored" data-anchor-id="a.-mise-en-forme-des-résultats">A. Mise en forme des résultats</h3>
+<p>Une fois les adresses normalisées via les référentiels, un vrai dédoublonnage sur le couple (adresse, bureau de vote associé) à partir des lignes initiales est réalisé. Plusieurs colonnes sont alors ajoutées.</p>
+<ul>
+<li>A l’échelle des adresses :
+<ul>
+<li><em>nb_adresses</em> : nombre de lignes dans le REU correspondant au couple (adresse normalisée, bv associé) considéré
+<ul>
+<li>Attention, cela ne correspond pas au nombre d’électeurs à l’adresse considérée, le fichier initial des adresses du REU étant déjà partiellement dédoublonné</li>
+</ul></li>
+</ul></li>
+<li>A l’échelle des bureaux de vote :
+<ul>
+<li><em>nb_adresses_initial</em> : nombre d’adresses initialement présentes dans le fichier originel du REU correspondant au bureau de vote</li>
+<li><em>nb_adresses_final</em> : nombre d’adresses présentes dans le fichier diffusé des adresses du REU correspondant au bureau de vote
+<ul>
+<li>Les adresses manquantes, en très faible proportion, correspondent à celles n’ayant pas pu être normalisées et géolocalisées avec une certitude suffisante par la BAN ou la BANO</li>
+</ul></li>
+</ul></li>
+</ul>
+</section>
+<section id="b.-table-de-correspondance-expérimentale-et-ponctuelle-des-référentiels-de-bureaux-de-vote" class="level3">
+<h3 class="anchored" data-anchor-id="b.-table-de-correspondance-expérimentale-et-ponctuelle-des-référentiels-de-bureaux-de-vote">B. Table de correspondance expérimentale et ponctuelle des référentiels de bureaux de vote</h3>
+<p>Dans la grande majorité des cas, les identifiants des bureaux de vote sont identiques dans le REU et dans le système d’information centralisant les résultats électoraux du ministère de l’Intérieur. Il subsiste toutefois quelques cas (3 000 bureaux de vote sur 69 000), où ces identifiants sont différents. Afin de permettre plus facilement le rapprochement de ces données, nous proposons une table de correspondance des identifiants des bureaux de vote avec les référentiels du site de l’Insee et du ministère de l’Intérieur. Ces correspondances ne revêtent aucun caractère officiel et ne sont qu’un travail expérimental conjoint entre l’Insee et Etalab afin d’offrir une possibilité de mise en cohérence facilitée des données. Celle-ci n’est donc pas fiable à 100%. En particulier, certains bureaux de vote n’ont pas pu être associés d’un référentiel à l’autre avec les informations à disposition. Certains identifiants (hors identifiant REU), bien que très rares, peuvent donc être manquants. De plus, le travail effectué n’est pertinent que pour les données considérées, les différents référentiels pouvant changer avec le temps.</p>
+<p>Pour plus de détails sur la méthodologie employée, les étapes sont les suivantes :</p>
+<ul>
+<li>Constitution d’un indice de bureau de vote comme {code_commune}_{code_du_bv_dans_la_commune} des 2 côtés, suivi d’un nettoyage standard sur les codes des bureaux (notamment retirer les caractères spéciaux et les <em>leading zeros</em>). Pour les collectivités d’outre-mer (hors Saint-Martin et Saint-Barthélémy), conversion des codes communes selon les indications du ministère de l’Intérieur.</li>
+<li>Jointure classique sur les indices construits, ce qui met en concordance la majorité des bureaux de vote (~66k sur un total de 69k de bureaux dans le REU)</li>
+<li>Application des règles de conversion obtenues auprès du ministère pour les indices des bureaux de vote des villes à arrondissement (Paris, Lyon, Marseille), qui a permis de mettre en concordance la quasi-totalité des bureaux dans ces communes (~1.6k bv)</li>
+<li>Association systématique des bureaux de vote seuls dans leur commune dans les 2 référentiels (~400 bv)</li>
+<li>Association manuelle des bureaux de vote des 2 fichiers lorsque le rapprochement est « évident », par exemple des codes [1, 2, 3, …] d’un côté et [101, 102, 103, …] de l’autre, mais qu’on ne peut pas rapprocher automatiquement sans vérification à l’œil nu en raison d’exceptions existantes (~300 bv rattrapés)</li>
+</ul>
+<p>A l’issue de ce traitement, environ 130 bureaux de vote côté REU n’ont pas trouvé leur équivalent dans l’autre fichier, et près de 250 côté SIE1. Une grande partie de ces rebuts sont localisés dans 3 communes : Belfort, Troyes et Dieppe, pour lesquelles les indices des bureaux de vote de chaque côté ne permettent pas de faire d’association avec certitude. Pour les autres, il s’agit peut-être de bureaux de vote divisés en deux d’un côté et pas de l’autre ou bien de changements de communes.</p>
+</section>
+<section id="c.-publication" class="level3">
+<h3 class="anchored" data-anchor-id="c.-publication">C. Publication</h3>
+<p>Il est prévu que les adresses normalisées du REU soient publiées en juin 2023 sous la forme de 2 fichiers :</p>
+<ul>
+<li>La table des adresses du REU</li>
+<li>La table des bureaux de vote du REU</li>
+</ul>
+<p>Plusieurs propositions d’utilisation des fichiers dans le cadre de la génération de contours devraient suivre cette publication.</p>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

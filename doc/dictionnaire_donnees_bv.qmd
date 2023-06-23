@@ -1,0 +1,58 @@
+# Table des bureaux de vote du Répertoire Électoral Unique
+
+
+## Informations sur la table
+
+Toutes les informations disponibles sur les différents bureaux de vote sont extraites de la table des adresses du REU.
+
+Dans la grande majorité des cas, les identifiants des bureaux de vote sont identiques dans le REU et dans le système d’information centralisant les résultats électoraux du ministère de l’Intérieur.
+Il subsiste toutefois quelques cas (3 000 bureaux de vote sur 69 000), où ces identifiants sont différents.
+Afin de permettre plus facilement le rapprochement de ces données, nous proposons une table de correspondance des identifiants des bureaux de vote avec les référentiels du site de l'Insee et du ministère de l'Intérieur.
+Ces correspondances ne revêtent aucun caractère officiel et ne sont qu'un travail expérimental conjoint entre l'Insee et Etalab afin d'offrir une possibilité de mise en cohérence facilitée des données. Celle-ci n'est donc pas fiable à 100%.
+En particulier, certains bureaux de vote n'ont pas pu être associés d'un référentiel à l'autre avec les informations à disposition.
+Certains identifiants (hors identifiant REU), bien que très rares, peuvent donc être manquants.
+De plus, le travail effectué n'est pertinent que pour les données considérées, les différents référentiels pouvant changer avec le temps.
+
+Avertissement : ces référentiels ne sont pas toujours exhaustifs pour les adresses des collectivités d'outre-mer. De ce fait, les adresses et bureaux de vote des communes de Saint-Martin et Saint-Barthélémy ont dû être retirées du fichier des adresses diffusé, car ils n'ont pas pu être normalisés et géolocalisés.
+
+## Dictionnaire des variables
+
+- _id_brut_bv_reu_ : identifiant unique dans le REU du bureau de vote associé à l'adresse
+    + Clé primaire de la table
+    + Construit comme suit : {code_commune_ref}_{code_reu_du_bv_dans_la_commune}
+    + Conservé tel que stocké dans le REU
+    + Variable permettant la jointure avec la table des adresses
+
+- _id_brut_insee_ : identifiant unique sur le [site de l'Insee](https://www.insee.fr/fr/information/3539086) du bureau de vote associé à l'adresse, basé sur une extraction du REU de mars 2022
+    + Construit comme suit : {code_commune_ref}_{code_insee_du_bv_dans_la_commune}
+    + Conservé tel que stocké dans le fichier présent sur le site de l'Insee
+    + Différences avec les identifiants du REU possiblement dues à des traitements intermédiaires ou bien à des modifications du fichier entre les dates d'extraction
+    + Jointure sur les identifiants faite à la main (src/2_cleaning/1_construction_table_bv_clean.py)
+    + Pour une poignée de bureaux de vote, aucun identifiant Insee n'a pu être retrouvé.
+
+- _id_brut_miom_ : identifiant unique dans le système d'information centralisant les [résultats électoraux du ministère de l'Intérieur](https://www.data.gouv.fr/fr/datasets/election-presidentielle-des-10-et-24-avril-2022-resultats-definitifs-du-1er-tour/) (SIE1) du bureau de vote associé à l'adresse
+    + Construit comme suit : {code_commune_ref}_{code_miom_du_bv_dans_la_commune}
+    + Conservé tel que stocké dans le fichier présent sur le site du ministère
+    + Jointure sur les identifiants faite à la main (src/6_finalisation_fichiers/2_matching_bv_reu_miom.ipynb)
+    + Pour une poignée de communes, aucun identifiant Miom sur les bureaux de vote de la commune n'a pu être associé, notamment pour les communes de Belfort, Troyes et Dieppe.
+
+- _code_commune_ref_ : code commune de la commune dans laquelle le bureau de vote se situe
+
+- _code_ : code nettoyé du bureau de vote (dans le fichier du REU) au sein de sa commune
+    + Permet notamment la jointure avec d'autres référentiels de bureaux de vote selon un code de bureau de vote standardisé
+    + Le code brut peut être extrait de la variable _id_brut_bv_reu_
+
+- _libelle_reu_ : nom du bureau de vote tel qu'inscrit dans le REU
+
+- _num_voie_reu_ : numéro de voie du bureau de vote tel qu'inscrit dans le REU
+
+- _voie_reu_ : voie du bureau de vote telle qu'inscrite dans le REU
+
+- _cp_reu_ : code postal du bureau de vote tel qu'inscrit dans le REU
+
+- _commune_reu_ : libellé de la commune du bureau de vote tel qu'inscrit dans le REU
+
+- _nb_adresses_initial_ : nombre d'adresses initialement présentes dans le fichier originel du REU correspondant au bureau de vote
+
+- _nb_adresses_final_ : nombre d'adresses présentes dans le fichier diffusé des adresses du REU correspondant au bureau de vote
+    + Les adresses manquantes, en très faible proportion, correspondent à celles n'ayant pas pu être normalisées et géolocalisées avec une certitude suffisante par les référentiels d'adresses
