@@ -1,0 +1,25 @@
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+communes-*
+*.csv
+# *.html
+*.log
+*.parquet
+*.xlsx
+*.zip
+
+__pycache__/
+
+.idea/
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata

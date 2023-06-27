@@ -1,0 +1,130 @@
+# Document de reproductibilité
+
+L'opération de normalisation des données du REU pilotée par le SSP Lab a été réalisée entre octobre 2022 et mars 2023.
+
+Ce document détaille le rôle des différents fichiers du code afin de faciliter la reprise de ce travail par d'autres équipes pour les futures versions du REU.
+
+## Les codes
+
+### Comprendre l'enchaînement des scripts et pouvoir reproduire le traitement sur les adresses du REU dans le futur
+
+### 1_imports_et_reconstructions
+
+#### Section à reprendre en fonction des données d'entrée utiliséees
+
+- _1_import_donnees_ : Les adresses du REU et de la BAN ont été récupérées sous la forme de csv par département. Ce script importe ces données et les rassemble en seulement deux fichiers Parquet tout en corrigeant certains problèmes de typage.
+
+- _2_reconstitution_code_commune_ : Dans le fichier initial du REU, le seul code commune disponible est celui du bureau de vote, parfois différent de celui des adresses renseignées. Un travail de reconstitution du code commune des adresses, principalement basé sur les libellés des communes, est réalisé pour pouvoir dans un premier temps obtenir des résultats plus fins sur les adresses.
+    + En réalité, les adresses de rattachement ne sont pas censées pouvoir être dans une commune différente du bureau de vote qui leur est associé, la reconstitution du code commune sert notamment à investiguer sur les exceptions observées.
+
+- _3_import_table_bv_insee_ : Import de la table des bureaux de vote du REU disponible sur le site de l'Insee pour pouvoir par la suite faire une jointure avec les identifiants effectivement présents dans le REU.
+
+### 2_cleaning
+
+#### Section nécessaire et reproductible telle quelle
+
+- _functions_cleaner_ : Un ensemble de fonctions (jusqu'à un haut niveau de complexité) permettant le nettoyage et l'anonymisation des différents champs d'adresse.
+    + Toute la méthodologie pré-géolocalisation est présente dans ce script, c'est là que des ajouts ou corrections peuvent être faits.
+
+- _1_construction_table_bv_clean_ : Travail de mise en cohérence entre les identifiants des bureaux de vote du REU et ceux présents sur le site de l'Insee.
+    + Travail assez expérimental et exploratoire qu'il peut être intéressant de refaire si jamais les référentiels sont amenés à changer et que davantage d'exceptions commencent à apparaître avec cette méthode de jointure.
+
+- _2_clean_adresses_ : Le script qui prend le plus de temps à tourner (quelques heures) car c'est lui qui va générer la table des adresses anonymisées et nettoyées à partir des différentes fonctions de cleaning.
+    + Possibilité de se limiter aux adresses de rattachement ou bien de nettoyer également les adresses de contact.
+    + Attention, même si nous avons tâché de rendre les opérations de nettoyage et d'anonymisation les plus exhaustives possibles, il est encore possible que des données personnelles puissent subsister, d'où la nécessité de compléter avec la normalisation via un des référentiels d'adresses nationaux.
+    + Le script isole à la fin un ensemble d'adresses dites "suspicieuses" dans des fichiers à part. Cela correspond aux adresses qu'il est intéressant de vérifier à la main car pouvant contenir des informations personnelles ayant échappé à l'algorithme.
+
+### 3_etude_cas_suspicieux
+
+#### Section exploratoire, pas nécessairement à reprendre
+
+- _1_get_suspicious_BAN_ : Obtenir les adresses de la BAN qui auraient été qualifiés de suspicieuses par notre méthode, pour comparer avec celles obtenues par la même méthode dans le REU.
+
+- _2_compare_suspicious_ : Associer les adresses suspicieuses du REU à leur homologue dans la BAN afin de pouvoir ensuite comparer à la main les adresses pour lesquelles des informations sensibles ont effectivement été omises ou non.
+
+### 4_formattage_pour_normalisation
+
+#### Section fonctionnelle reproductible telle quelle
+
+- _1_format_addresses_for_extracts_ : Limiter les données au champ d'étude, ie les adresses de rattachement qui sont bien dans la même commune que le bureau de vote associé, dédoublonner les adresses pour limiter les appels aux référentiels d'adresse, et limiter les colonnes utilisées. Une table de correspondance des indices permet ensuite de remonter aux données non dédoublonnées.
+
+- _2_get_extracts_addresses_ : Redécouper le fichier d'adresses global en extraits de 100 000 lignes au format csv afin d'optimiser l'utilisation des référentiels d'adresses (notamment en parallélisant les requêtes sur l'ensemble des csv).
+    + Possibilité de n'en récupérer que des extraits de taille choisie pour expérimentations
+
+### 5_geocodage
+
+#### Section nécessaire et reproductible telle quelle
+
+- _1_geocode_reu_ : L'autre gros morceau du projet, l'association des adresses à leur homologue dans la BAN ou la BANO quand trouvé. Il s'agit de la partie du code la plus complexe, qui fait notamment appel aux API de la BAN et de la BANO pour essayer de retrouver l'adresse originale dans un des référentiels à l'échelle la plus fine possible et avec un seuil de confiance le plus élevé possible. Si un match est trouvé pour une adresse, on a alors sa version normalisée ainsi que sa géolocalisation.
+
+- _launch_geocod_ : Commande permettant de lancer la normalisation & géolocalisation de manière parallélisée.
+
+- _2_exporter_sorties_BAN_ : Rassembler les résultats issus de la BAN dans une seule base de données cohérente avec les notations utilisées précédemment.
+
+- _3_analyses_sorties_BAN_ : Notebook exploratoire pour investiguer sur la cohérence des contours de bureaux de votes obtenus ainsi que sur les pertes d'adresses liées à l'absence de normalisation possible par la BAN ou la BANO.
+
+### 6_finalisation_fichiers
+
+#### Section fonctionnelle, à reprendre en fonction des modifications faites précédemment
+
+- _1_finalisation_resultats_ : Rassembler les informations dispersées sur les étapes précédentes pour créer les tables finales à diffuser : la table des adresses et la table des bureaux de vote. Rajouter les colonnes sur les pertes d'adresses liées à l'opération de normalisation.
+
+- _2_matching_bv_reu_miom_ : Notebook exploratoire réalisant une harmonisation à la main ponctuelle dans le temps (et non officielle) entre les identifiants des bureaux de vote du REU et ceux du système d'information centralisant les résultats électoraux du ministère de l'Intérieur.
+
+## Les données
+
+### Répertoire des données présentes dans le coffre HAB-Adresses-REU
+
+### rawdata
+
+- Adresses REU brutes, un fichier par département
+- Adresses de la BAN, un fichier par département
+- Tables de codes commune et correspondances entre plusieurs années
+- Référentiels bruts des bureaux de vote du ministère de l'Intérieur et du REU selon le site de l'Insee
+
+### 0_Inputs_codes_commune_csv
+
+- Tables pour la reconstitution des codes commune
+
+### 1_Inputs_nettoyage_manuel_parquet
+
+- _adressesBAN_brutes_ : Regroupement en un seul fichier des adresses de la BAN
+- _adressesBAN_brutes_ : Regroupement en un seul fichier des lieux-dits de la BAN
+
+- _adressesREU_brutes_ : Regroupement en un seul fichier des adresses et bureaux de vote du REU
+- _adressesREU_brutes2_ : Adresses du REU avec code commune reconstitué (et bureaux de vote)
+
+### 2_Nettoyage_manuel_adresses
+
+- _cleaned_addresses_large_ : Adresses du REU nettoyées et anonymisées
+- _cleaned_addresses_large_detailed_ : Adresses du REU, version brute et version nettoyée & anonymisée
+- _cleaned_addresses_long_ : Toutes les adresses du REU nettoyées et anonymisées, avec adresses de rattachement et de contact dissociées
+- _deduplicated_cleaned_addresses_long_ : Adresses du REU (rattachement et contact dissociées) nettoyées et anonymisées, et dédoublonnées
+- _table_correspondance_id_groups_ : Table de correspondance pour remonter en amont du dédoublonnage
+- Des extraits en csv des tables précédemment mentionnées
+
+- suspicious_addresses_analysis : Ensemble des tables d'adresses (REU & BAN) jugées suspicieuses par notre méthode, au sens où elles pourraient potentiellement contenir des informations personnelles ou superflues
+
+- slices_x%_deduplicated_cleaned_addresses_long : La table _deduplicated_cleaned_addresses_long_ découpée en extraits au format csv
+
+### 3_Retour Géoloc
+
+Le système de normalisation et de géolocalisation Géoloc non conservé dans le projet
+
+### 4_Bureaux_de_vote
+
+- _bureaux_de_vote_insee_ : Référentiel propre & détaillé des bureaux de vote sur le site de l'Insee
+- _table_correspondance_bv_simplifiee_ : Table de correspondance entre les référentiels de bureaux de vote REU et Insee
+- _table_correspondance_bv_complete_ : Table de correspondance entre les référentiels de bureaux de vote REU et Insee, avec colonnes supplémentaires
+
+### 5_Retours_BAN
+
+- _sorties_BAN_date_ : Retours des référentiels d'adresses, ie adresses normalisées, scores et coordonnées géographiques
+- _log_extract_addr_ : Logs de la normalisation permettant d'identifier les adresses pour lesquelles l'association est un échec
+
+### 6_Tables_finales
+
+- _table_adresses_ : Table finale à diffuser des adresses du REU
+- _table_bv_ : Table finale des bureaux de vote du REU, sans harmonisation avec le référentiel Miom
+- _table_bv_finale_ : Table finale à diffuser des bureaux de vote du REU, avec harmonisation avec le référentiel Miom
+- _table_correspondance_a_la_main_ : Harmonisation des référentiels de bureaux de vote REU et Miom ayant été réalisée à l'oeil nu
