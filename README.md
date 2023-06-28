@@ -2,7 +2,7 @@
 
 Vous trouverez ici à titre informatif l'ensemble des codes de traitement sur les données du REU ayant permis la diffusion des adresses et bureaux de vote du fichier, ainsi que la documentation associée. Ce travail a été réalisé par l'Insee entre octobre 2022 et juin 2023 avec la collaboration de la Dinum (Etalab). Pour plus de détails, vous pouvez consulter la page méthodologique ici : ```doc/methodologie.html```.
 
-## Les données diffusées sur data.gouv.fr
+## Les données diffusées sur [data.gouv.fr](https://www.data.gouv.fr/fr/datasets/bureaux-de-vote-et-adresses-de-leurs-electeurs/)
 
 Le travail réalisé permet la publication de 2 fichiers :
 
